@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids' Math Practice Worksheet Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: #e0e0e0;
+            transition: background-color 0.3s;
+            color: #333;
+            font-weight: bold;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 200px;
+        }
+        input, select {
+            padding: 5px;
+            width: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .problem {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .problem-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .carry-borrow {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            text-align: center;
+        }
+        .number, .operator {
+            font-size: 18px;
+            margin-right: 5px;
+        }
+        .line {
+            width: 100%;
+            border-top: 1px solid black;
+            margin: 5px 0;
+        }
+        .answer {
+            width: 100%;
+            text-align: right;
+        }
+        .feedback {
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('addition');
+            const [problems, setProblems] = useState([]);
+            const [settings, setSettings] = useState({
+                addition: { numProblems: 5, numDigits: 2, includeCarryover: false },
+                subtraction: { numProblems: 5, numDigits: 2, includeBorrowing: false },
+                multiplication: { numProblems: 5, numDigits: 2, includeCarryover: false },
+                division: { numProblems: 5, numDigits: 2, includeRemainder: false },
+                arithmeticTables: { table: 2 },
+                randomTables: { maxTable: 10 }
+            });
+
+            const generateProblems = () => {
+                let newProblems = [];
+                const currentSettings = settings[activeTab];
+
+                const generateNumber = (digits, max = 9) => {
+                    let num = 0;
+                    for (let i = 0; i < digits; i++) {
+                        num += Math.floor(Math.random() * (max + 1)) * Math.pow(10, i);
+                    }
+                    return num;
+                };
+
+                switch (activeTab) {
+                    case 'addition':
+                        newProblems = Array(currentSettings.numProblems).fill().map(() => {
+                            const num1 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : 8);
+                            const num2 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : (9 - Math.floor(num1 / Math.pow(10, currentSettings.numDigits - 1))));
+                            return { num1, num2, operation: '+', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    case 'subtraction':
+                        newProblems = Array(currentSettings.numProblems).fill().map(() => {
+                            const num1 = generateNumber(currentSettings.numDigits);
+                            const num2 = currentSettings.includeBorrowing ? 
+                                generateNumber(currentSettings.numDigits, num1) : 
+                                Math.min(generateNumber(currentSettings.numDigits), num1);
+                            return { num1, num2, operation: '-', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    case 'multiplication':
+                        newProblems = Array(currentSettings.numProblems).fill().map(() => {
+                            const num1 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : 5);
+                            const num2 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : 5);
+                            return { num1, num2, operation: '×', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    case 'division':
+                        newProblems = Array(currentSettings.numProblems).fill().map(() => {
+                            const divisor = generateNumber(currentSettings.numDigits - 1) + 1;
+                            const quotient = generateNumber(currentSettings.numDigits - 1) + 1;
+                            const remainder = currentSettings.includeRemainder ? Math.floor(Math.random() * divisor) : 0;
+                            const dividend = divisor * quotient + remainder;
+                            return { num1: dividend, num2: divisor, operation: '÷', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    case 'arithmeticTables':
+                        newProblems = Array(10).fill().map((_, i) => {
+                            return { num1: currentSettings.table, num2: i + 1, operation: '×', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    case 'randomTables':
+                        newProblems = Array(10).fill().map(() => {
+                            const num1 = Math.floor(Math.random() * currentSettings.maxTable) + 1;
+                            const num2 = Math.floor(Math.random() * 10) + 1;
+                            return { num1, num2, operation: '×', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                }
+                setProblems(newProblems);
+            };
+
+            const checkAnswers = () => {
+                const checkedProblems = problems.map(problem => {
+                    let correctAnswer;
+                    switch (problem.operation) {
+                        case '+':
+                            correctAnswer = problem.num1 + problem.num2;
+                            break;
+                        case '-':
+                            correctAnswer = problem.num1 - problem.num2;
+                            break;
+                        case '×':
+                            correctAnswer = problem.num1 * problem.num2;
+                            break;
+                        case '÷':
+                            correctAnswer = Math.floor(problem.num1 / problem.num2);
+                            break;
+                    }
+                    const isCorrect = parseInt(problem.userAnswer) === correctAnswer;
+                    return {
+                        ...problem,
+                        feedback: isCorrect ? 'Correct!' : `Incorrect. The correct answer is ${correctAnswer}.`,
+                        isCorrect
+                    };
+                });
+                setProblems(checkedProblems);
+            };
+
+            const handleInputChange = (index, value) => {
+                const updatedProblems = [...problems];
+                updatedProblems[index].userAnswer = value;
+                setProblems(updatedProblems);
+            };
+
+            const handleSettingChange = (setting, value) => {
+                setSettings(prevSettings => ({
+                    ...prevSettings,
+                    [activeTab]: {
+                        ...prevSettings[activeTab],
+                        [setting]: value
+                    }
+                }));
+            };
+
+            useEffect(() => {
+                generateProblems();
+            }, [activeTab]);
+
+            return (
+                <div className="container">
+                    <h1>Kids' Math Practice Worksheet Generator</h1>
+                    <div className="tabs">
+                        {['addition', 'subtraction', 'multiplication', 'division', 'arithmeticTables', 'randomTables'].map(tab => (
+                            <button
+                                key={tab}
+                                className={`tab ${activeTab === tab ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="tab-content active">
+                        {['addition', 'subtraction', 'multiplication', 'division'].includes(activeTab) && (
+                            <div>
+                                <div className="input-group">
+                                    <label>Number of problems:</label>
+                                    <input
+                                        type="number"
+                                        value={settings[activeTab].numProblems}
+                                        onChange={(e) => handleSettingChange('numProblems', parseInt(e.target.value))}
+                                        min="1"
+                                        max="20"
+                                    />
+                                </div>
+                                <div className="input-group">
+                                    <label>Number of digits:</label>
+                                    <input
+                                        type="number"
+                                        value={settings[activeTab].numDigits}
+                                        onChange={(e) => handleSettingChange('numDigits', parseInt(e.target.value))}
+                                        min="1"
+                                        max="4"
+                                    />
+                                </div>
+                                {activeTab === 'addition' && (
+                                    <div className="input-group">
+                                        <label>Include carryover:</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings[activeTab].includeCarryover}
+                                            onChange={(e) => handleSettingChange('includeCarryover', e.target.checked)}
+                                        />
+                                    </div>
+                                )}
+                                {activeTab === 'subtraction' && (
+                                    <div className="input-group">
+                                        <label>Include borrowing:</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings[activeTab].includeBorrowing}
+                                            onChange={(e) => handleSettingChange('includeBorrowing', e.target.checked)}
+                                        />
+                                    </div>
+                                )}
+                                {activeTab === 'multiplication' && (
+                                    <div className="input-group">
+                                        <label>Include carryover:</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings[activeTab].includeCarryover}
+                                            onChange={(e) => handleSettingChange('includeCarryover', e.target.checked)}
+                                        />
+                                    </div>
+                                )}
+                                {activeTab === 'division' && (
+                                    <div className="input-group">
+                                        <label>Include remainder:</label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings[activeTab].includeRemainder}
+                                            onChange={(e) => handleSettingChange('includeRemainder', e.target.checked)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {activeTab === 'arithmeticTables' && (
+                            <div className="input-group">
+                                <label>Select multiplication table:</label>
+                                <select
+                                    value={settings.arithmeticTables.table}
+                                    onChange={(e) => handleSettingChange('table', parseInt(e.target.value))}
+                                >
+                                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                        <option key={num} value={num}>{num}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {activeTab === 'randomTables' && (
+                            <div className="input-group">
+                                <label>Maximum table number:</label>
+                                <select
+                                    value={settings.randomTables.maxTable}
+                                    onChange={(e) => handleSettingChange('maxTable', parseInt(e.target.value))}
+                                >
+                                    {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                        <option key={num} value={num}>{num}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <button onClick={generateProblems}>Generate Problems</button>
+                        <button onClick={checkAnswers}>Solve All</button>
+                        <div className="problems">
+                            {problems.map((problem, index) => (
+                                <div key={index} className="problem">
+                                    {(activeTab === 'addition' && settings[activeTab].includeCarryover) && (
+                                        <div className="problem-row">
+                                            <input type="text" className="carry-borrow" maxLength="1" />
+                                            <input type="text" className="carry-borrow" maxLength="1" />
+                                        </div>
+                                    )}
+                                    {(activeTab === 'subtraction' && settings[activeTab].includeBorrowing) && (
+                                        <div className="problem-row">
+                                            <input type="text" className="carry-borrow" maxLength="1" />
+<input type="text" className="carry-borrow" maxLength="1" />
+                        </div>
+                    )}
+                    {(activeTab === 'multiplication' && settings[activeTab].includeCarryover) && (
+                        <div className="problem-row">
+                            <input type="text" className="carry-borrow" maxLength="1" />
+                            <input type="text" className="carry-borrow" maxLength="1" />
+                            <input type="text" className="carry-borrow" maxLength="1" />
+                        </div>
+                    )}
+                    <div className="problem-row">
+                        <span className="number">{problem.num1}</span>
+                    </div>
+                    <div className="problem-row">
+                        <span className="operator">{problem.operation}</span>
+                        <span className="number">{problem.num2}</span>
+                    </div>
+                    <div className="line"></div>
+                    <div className="problem-row">
+                        <input
+                            type="text"
+                            className="answer"
+                            value={problem.userAnswer}
+                            onChange={(e) => handleInputChange(index, e.target.value)}
+                        />
+                    </div>
+                    {problem.feedback && (
+                        <div className={`feedback ${problem.isCorrect ? 'correct' : 'incorrect'}`}>
+                            {problem.feedback}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    </div>
+    {/* Copyright and License */}
+    <div style={{marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '10px', fontSize: '0.9em'}}>
+        <p>&copy; 2024 Saurabh Verma. All rights reserved.</p>
+        <p>This tool is free to use but not to reproduce or redistribute without permission. If you find this tool helpful, please credit Saurabh Verma and link back to this page.</p>
+        <p>This work is licensed under a <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank">Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License</a>.</p>
+    </div>
+</div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
