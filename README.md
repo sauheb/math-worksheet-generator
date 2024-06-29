@@ -58,4 +58,4 @@ While every effort has been made to ensure the accuracy of the generated problem
 ---
 
 We hope this tool helps make math practice more engaging and effective for children. Happy learning!
-
+<p><a href="index.html" target="_blank">Back To Worksheet Generator</a></p>
