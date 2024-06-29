@@ -164,10 +164,19 @@
                             return { num1, num2, operation: '-', userAnswer: '', feedback: '' };
                         });
                         break;
+                    /*
                     case 'multiplication':
                         newProblems = Array(currentSettings.numProblems).fill().map(() => {
                             const num1 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : 5);
                             const num2 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 9 : 5);
+                            return { num1, num2, operation: '×', userAnswer: '', feedback: '' };
+                        });
+                        break;
+                    */
+                    case 'multiplication':
+                        newProblems = Array(currentSettings.numProblems).fill().map(() => {
+                            const num1 = generateNumber(1, 9); // Single digit for the multiplier
+                            const num2 = generateNumber(currentSettings.numDigits, currentSettings.includeCarryover ? 99 : 9);
                             return { num1, num2, operation: '×', userAnswer: '', feedback: '' };
                         });
                         break;
